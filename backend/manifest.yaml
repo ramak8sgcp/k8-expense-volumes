@@ -32,6 +32,7 @@ spec:
       containers:
       - name: backend
         image: joindevops/backend:v1
+        imagePullPolicy: Always
         envFrom:
         - configMapRef:
             name: backend
