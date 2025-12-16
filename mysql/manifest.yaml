@@ -1,67 +1,144 @@
-kind: Service
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name: mysql-headless
+#   namespace: expense
+# spec:
+#   clusterIP: None # for headless service there is no cluster IP
+#   selector:
+#     project: expense
+#     component: mysql
+#     tier: db
+#   ports:
+#   - protocol: TCP
+#     port: 3306 # service port
+#     targetPort: 3306
+# ---
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   name: mysql
+#   namespace: expense
+# spec:
+#   selector:
+#     project: expense
+#     component: mysql
+#     tier: db
+#   ports:
+#   - protocol: TCP
+#     port: 3306 # service port
+#     targetPort: 3306
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: mysql
+#   namespace: expense
+# spec:
+#   selector:
+#     matchLabels:
+#       project: expense
+#       component: mysql
+#       tier: db
+#   serviceName: "mysql-headless" # this is the headless service should be mentioned for statefulset
+#   replicas: 2 # 
+#   template:
+#     metadata:
+#       labels:
+#         project: expense
+#         component: mysql
+#         tier: db
+#     spec:
+#       containers:
+#       - name: mysql
+#         image: ramak8sgcp/mysql:v2
+#         volumeMounts:
+#         - name: mysql
+#           mountPath: /var/lib/mysql
+#   # This is PVC defnition, directly mentioned here
+#   volumeClaimTemplates:
+#   - metadata:
+#       name: mysql
+#     spec:
+#       accessModes: [ "ReadWriteOnce" ]
+#       storageClassName: "expense-ebs"
+#       resources:
+#         requests:
+#           storage: 1Gi
+
+
+
 apiVersion: v1
-metadata:
-  name: mysql-headless
-  namespace: expense
-spec:
-  clusterIP: None # for headless service there is no cluster IP
-  selector:
-    project: expense
-    component: mysql
-    tier: db
-  ports:
-  - protocol: TCP
-    port: 3306 # service port
-    targetPort: 3306
----
-kind: Service
-apiVersion: v1
+kind: ConfigMap
 metadata:
   name: mysql
-  namespace: expense
-spec:
-  selector:
-    project: expense
-    component: mysql
-    tier: db
-  ports:
-  - protocol: TCP
-    port: 3306 # service port
-    targetPort: 3306
+  namespace: roboshop
+data:
+  my.cnf: |
+    [mysqld]
+    innodb_redo_log_capacity = 2G
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: mysql
-  namespace: expense
+  namespace: roboshop
+  # these are replica set labels
+  labels:
+    project: roboshop
+    component: mysql
+    tier: db
 spec:
+  replicas: 1
   selector:
+    # these labels are used to select pods
     matchLabels:
-      project: expense
+      project: roboshop
       component: mysql
       tier: db
-  serviceName: "mysql-headless" # this is the headless service should be mentioned for statefulset
-  replicas: 2 # 
+  # pod definition
   template:
     metadata:
       labels:
-        project: expense
+        project: roboshop
         component: mysql
         tier: db
     spec:
       containers:
       - name: mysql
         image: ramak8sgcp/mysql:v1
+        imagePullPolicy: Always
+        # readinessProbe:
+        #   tcpSocket:
+        #     port: 3306
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   tcpSocket:
+        #     port: 3306
+        #   initialDelaySeconds: 20
+        #   periodSeconds: 5
         volumeMounts:
-        - name: mysql
-          mountPath: /var/lib/mysql
-  # This is PVC defnition, directly mentioned here
-  volumeClaimTemplates:
-  - metadata:
-      name: mysql
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "expense-ebs"
-      resources:
-        requests:
-          storage: 1Gi
+        - name: mysql-config
+          mountPath: /etc/mysql/conf.d/my.cnf
+          subPath: my.cnf
+
+      volumes:
+        - name: mysql-config
+          configMap:
+            name: mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: roboshop
+spec:
+  selector:
+    project: roboshop
+    component: mysql
+    tier: db
+  ports:
+    - protocol: TCP
+      port: 3306 # service port
+      targetPort: 3306 # container port
