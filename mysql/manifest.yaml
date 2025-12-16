@@ -52,6 +52,7 @@ spec:
       containers:
       - name: mysql
         image: ramak8sgcp/mysql:v2
+        imagePullPolicy: Always
         volumeMounts:
         - name: mysql
           mountPath: /var/lib/mysql
