@@ -32,7 +32,6 @@ spec:
       containers:
       - name: backend
         image: raidi/backend:v1
-        imagePullPolicy: Always
         envFrom:
         - configMapRef:
             name: backend
@@ -52,4 +51,3 @@ spec:
     protocol: TCP
     port: 8080 # service port
     targetPort: 8080 # container port
-
