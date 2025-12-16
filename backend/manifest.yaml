@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: joindevops/mysql:v1
+        image: joindevops/backend:v1
         envFrom:
         - configMapRef:
             name: backend
